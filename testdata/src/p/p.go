@@ -1,4 +1,4 @@
-package example
+package p
 
 import (
 	"net/http"
@@ -108,7 +108,6 @@ func GoodMiddlewareWithMultipleBlankLines(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
-
 
 			return
 		}

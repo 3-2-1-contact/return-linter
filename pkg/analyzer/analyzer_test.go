@@ -1,20 +1,27 @@
-package returnlinter_test
+package analyzer_test
 
 import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/3-2-1-contact/return-linter/pkg/analyzer"
 	"golang.org/x/tools/go/analysis/analysistest"
-
-	"github.com/jc/return-linter"
 )
 
-func TestAnalyzer(t *testing.T) {
-	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, returnlinter.Analyzer, "example")
+func TestAll(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get wd: %s", err)
+	}
+
+	testdata := filepath.Join(filepath.Dir(filepath.Dir(wd)), "testdata")
+	analysistest.Run(t, testdata, analyzer.Analyzer, "p")
+
 }
 
 // TestTableDriven provides explicit test cases for various scenarios
@@ -276,7 +283,7 @@ func TestIsWriteHeaderCall(t *testing.T) {
 				t.Fatalf("Failed to parse expression: %v", err)
 			}
 
-			result := returnlinter.IsWriteHeaderCall(expr)
+			result := analyzer.IsWriteHeaderCall(expr)
 			if result != tt.expected {
 				t.Errorf("IsWriteHeaderCall(%q) = %v, want %v", tt.code, result, tt.expected)
 			}
@@ -350,7 +357,7 @@ func main() int {
 				t.Fatal("No statements found in function")
 			}
 
-			result := returnlinter.IsFollowedByReturn(stmts, 0)
+			result := analyzer.IsFollowedByReturn(stmts, 0)
 			if result != tt.expected {
 				t.Errorf("IsFollowedByReturn() = %v, want %v", result, tt.expected)
 			}
