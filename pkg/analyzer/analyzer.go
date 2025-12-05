@@ -181,7 +181,8 @@ func IsWriteHeaderCall(expr ast.Expr) bool {
 	return selector.Sel.Name == "WriteHeader"
 }
 
-// IsFollowedByReturn checks if the next non-whitespace statement is a return
+// IsFollowedByReturn checks if the next non-whitespace statement is a return,
+// optionally allowing a log statement before the return
 func IsFollowedByReturn(stmts []ast.Stmt, currentIndex int) bool {
 	// Check if there's a next statement
 	if currentIndex+1 >= len(stmts) {
@@ -189,8 +190,46 @@ func IsFollowedByReturn(stmts []ast.Stmt, currentIndex int) bool {
 	}
 
 	// The next statement should be a return statement
-	_, ok := stmts[currentIndex+1].(*ast.ReturnStmt)
-	return ok
+	if _, ok := stmts[currentIndex+1].(*ast.ReturnStmt); ok {
+		return true
+	}
+
+	// Or it could be a log statement followed by a return
+	if isLogStatement(stmts[currentIndex+1]) {
+		// Check if there's a return after the log statement
+		if currentIndex+2 >= len(stmts) {
+			return false
+		}
+		_, ok := stmts[currentIndex+2].(*ast.ReturnStmt)
+		return ok
+	}
+
+	return false
+}
+
+// isLogStatement checks if the statement is a log.* call
+func isLogStatement(stmt ast.Stmt) bool {
+	exprStmt, ok := stmt.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+
+	callExpr, ok := exprStmt.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+
+	selector, ok := callExpr.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+
+	ident, ok := selector.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	return ident.Name == "log"
 }
 
 // isEmptyStmt checks if a statement is effectively empty (just whitespace/comments)

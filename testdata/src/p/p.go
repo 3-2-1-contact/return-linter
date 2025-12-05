@@ -1,6 +1,7 @@
 package p
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -110,6 +111,42 @@ func GoodMiddlewareWithMultipleBlankLines(handler http.Handler) http.Handler {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 
 			return
+		}
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// GoodMiddlewareWithLog shows that log statement is allowed between WriteHeader and return
+func GoodMiddlewareWithLog(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			log.Println("Unauthorized access attempt")
+			return
+		}
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// BadMiddlewareWithLogNoReturn shows that log without return should trigger error
+func BadMiddlewareWithLogNoReturn(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			w.WriteHeader(http.StatusUnauthorized) // want "WriteHeader call not immediately followed by return statement"
+			log.Println("Unauthorized access attempt")
+			w.Write([]byte("Unauthorized"))
+		}
+		handler.ServeHTTP(w, r)
+	})
+}
+
+// BadMiddlewareWithLogWrongOrder shows log before WriteHeader is not allowed
+func BadMiddlewareWithLogWrongOrder(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			log.Println("Unauthorized access attempt")
+			w.WriteHeader(http.StatusUnauthorized) // want "WriteHeader call not immediately followed by return statement"
+			w.Write([]byte("Unauthorized"))
 		}
 		handler.ServeHTTP(w, r)
 	})
